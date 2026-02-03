@@ -6,10 +6,15 @@
 #include "TheaterChase.h"
 #include "Arduino.h"
 
+uint32_t adcToHexColor(int adcValue, int maxAdcValue = 1023);
+
 
 #ifdef __AVR__
 #include <avr/power.h>
 #endif
+
+#define BUTTON_UP    3
+#define BUTTON_DOWN  4
 
 void setup() {
   // This is for Trinket 5V 16MHz, you can remove these three lines if you are not using a Trinket
@@ -17,6 +22,10 @@ void setup() {
     if (F_CPU == 16000000) clock_prescale_set(clock_div_1);
   #endif
   // End of trinket special code
+
+  pinMode(A0, INPUT); ///pin A0 as adc input for color choice
+  pinMode(BUTTON_UP, INPUT_PULLUP); 
+  pinMode(BUTTON_DOWN, INPUT_PULLUP);
 
   strip.begin();
   strip.setBrightness(40);
@@ -27,52 +36,62 @@ void setup() {
 
 void loop() 
 {
-int i = 0;
+  uint8_t currentBrightness = 40;  // Starting brightness
+  
   while(1)
   { 
 
- // rainbow(strip,30);
-  //rainbowheart(strip, 30,0);
-  //rainbowCycle(strip,30);
-  //rainbowheart(strip, 30,1);
-  int aDel = 1;
-  aquatronic(strip,aDel,8);
-  aquatronic(strip,aDel,6);
-  rainbowheart(strip,aDel,0);
-  aquatronic(strip,aDel,0);
-  aquatronic(strip,aDel,1);
-  aquatronic(strip,aDel,2);
-  aquatronic(strip,aDel,0);
-  aquatronic(strip,aDel,3);
-  aquatronic(strip,aDel,4);
-  aquatronic(strip,aDel,5);
-  aquatronic(strip,aDel,6);
-  aquatronic(strip,aDel,7);
-  aquatronic(strip,aDel,8);
-  rainbowheart(strip,2*aDel,0);    
-//  theaterChase(strip,WHITE,100);
-  
-  i++;
-  i= i%256;
-  delay(100);
-  //Serial.println(i);
+     // Read ADC value for color selection
+    int adcValue = analogRead(A0);
+    uint32_t selectedColor = adcToHexColor(adcValue);
+    
+    // Check BUTTON_UP for brightness increase
+    if (digitalRead(BUTTON_UP) == LOW) {
+      if (currentBrightness < 255) {
+        currentBrightness += 10;
+        strip.setBrightness(currentBrightness);
+        strip.show();
+      }
+      delay(200);  // Debounce delay
+    }
+    
+    // Check BUTTON_DOWN for brightness decrease
+    if (digitalRead(BUTTON_DOWN) == LOW) {
+      if (currentBrightness > 0) {
+        currentBrightness -= 10;
+        strip.setBrightness(currentBrightness);
+        strip.show();
+      }
+      delay(200);  // Debounce delay
+    }
+    
+    
+if (adcValue<100)
+    rainbow(strip,20); //rainbow if adc low
+else
+    colorWipe(strip, selectedColor, 10);// inf higher adc the selected color is wiped
+    delay(50);
   }
 }
 
 
-
-// // Wczytywanie danej z klawiatury po UART
-// if(Serial.available()>0)
-// {
-// int width = Serial.parseInt();
-// Serial.print("otrzymalem:");
-// Serial.println(width);
-// strip.setBrightness(width);
-// }
 
 void function1(Adafruit_NeoPixel& strip, uint32_t& color, uint8_t wait = 10) //strobo przelatujące binarnie po kolorach dobrać szybkość zmian (wait jako prescaler albo zmieniać wartość incrementu ) 
 {
   colorWipe(strip, color, wait);
   strip.show();
   color+=10000;
+}
+
+// Convert ADC value to hex color format (0xFFFFFF)
+// Input: ADC value (0-1023 for 10-bit Arduino, or 0-4095 for 12-bit)
+// Output: uint32_t hex color (0xRRGGBB format)
+uint32_t adcToHexColor(int adcValue, int maxAdcValue = (int)1023) {
+  // Map ADC value to 0-255 range for Wheel function
+  byte wheelValue = map(adcValue, 0, maxAdcValue, 0, 255);
+  
+  // Use Wheel to get RGB values, then convert to hex
+  uint32_t color = Wheel(wheelValue);
+  
+  return color;
 }
