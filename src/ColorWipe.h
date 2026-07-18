@@ -7,8 +7,9 @@ void colorWipe(Adafruit_NeoPixel& strip, uint32_t c)
 {
   for(uint16_t i=0; i<strip.numPixels(); i++) {
     strip.setPixelColor(i, c);
-    strip.show();
+    
   }
+  strip.show();
 }
 
 void colorWipe(Adafruit_NeoPixel& strip, uint32_t c, uint8_t wait) 
